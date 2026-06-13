@@ -85,6 +85,9 @@ client-config-dir /etc/openvpn/networks/$NAME/ccd
 tls-verify "/etc/openvpn/networks/$NAME/verify.sh"
 $MODE_BLOCK
 script-security 2
+tls-version-min 1.2
+data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+auth SHA256
 keepalive 10 120
 user nobody
 group nogroup

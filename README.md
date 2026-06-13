@@ -21,12 +21,12 @@ bash common/gen-client.sh client2 example-tun example-tap
 docker compose up -d --build
 
 # Add a network later
-bash common/gen-network.sh iot-tap tap 1197 10.11.0.0/24
+bash common/gen-network.sh default-tap tap 1197 10.11.0.0/24
 # Add port 1197 to docker-compose.yml ports, then:
 docker compose up -d --build server
 
 # Grant existing clients access to the new network
-bash common/gen-client.sh client1 example-tun example-tap iot-tap
+bash common/gen-client.sh client1 example-tun example-tap default-tap
 
 # Add a client later
 bash common/gen-client.sh bob example-tun

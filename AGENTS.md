@@ -68,7 +68,7 @@ bare-metal.
   creates one `openvpn-client@<network>` systemd service per network.
 - **Rationale:** Each connection can be started/stopped/restarted
   individually. Standard Debian `openvpn` package template.
-- **Usage:** `systemctl enable --now openvpn-client@office-tun`
+- **Usage:** `systemctl enable --now openvpn-client@guest-tun`
 
 ### Port Ranges
 - `docker-compose.yml` exposes `1194-1195:1194-1195/udp`. Extend the
