@@ -4,7 +4,7 @@ set -euo pipefail
 load_env() {
   local COMMON_DIR="$1"
   local ENV_FILE="$COMMON_DIR/../.env"
-  [ -f "$ENV_FILE" ] && source "$ENV_FILE"
+  if [ -f "$ENV_FILE" ]; then source "$ENV_FILE"; fi
   SERVER_ADDRESS="${SERVER_ADDRESS:-server}"
 }
 
@@ -26,7 +26,7 @@ copy_client_certs() {
 write_ccd_marker() {
   local NET_DIR="$1" CLIENT="$2"
   local CCD_FILE="$NET_DIR/ccd/$CLIENT"
-  [ ! -f "$CCD_FILE" ] && echo "# $CLIENT" > "$CCD_FILE"
+  if [ ! -f "$CCD_FILE" ]; then echo "# $CLIENT" > "$CCD_FILE"; fi
 }
 
 write_ovpn() {
@@ -57,22 +57,26 @@ $(cat "$PKI_DIR/private/${CLIENT}.key")
 </key>
 EOF
 
-  [ -s "$NET_DIR/ta.key" ] && cat >> "$OVPN" <<EOF
+  if [ -s "$NET_DIR/ta.key" ]; then
+    cat >> "$OVPN" <<EOF
 <tls-crypt>
 $(cat "$NET_DIR/ta.key")
 </tls-crypt>
 EOF
+  fi
 }
 
 setup_client_for_network() {
   local NET="$1" PROJECT_DIR="$2" PKI_DIR="$3" CLIENT="$4" SERVER_ADDRESS="$5"
   local NET_DIR="$PROJECT_DIR/networks/$NET"
-  [ ! -f "$NET_DIR/server.conf" ] && { echo "Network '$NET' not found."; return 1; }
+  if [ ! -f "$NET_DIR/server.conf" ]; then
+    echo "Network '$NET' not found."; return 1
+  fi
   write_ccd_marker "$NET_DIR" "$CLIENT"
   write_ovpn "$NET_DIR" "$PKI_DIR" "$CLIENT" "$SERVER_ADDRESS"
 }
 
-[ $# -lt 2 ] && { echo "Usage: $0 <client-name> <network> [network ...]"; exit 1; }
+if [ $# -lt 2 ]; then echo "Usage: $0 <client-name> <network> [network ...]"; exit 1; fi
 
 CLIENT="$1"; shift
 NETWORKS=("$@")
@@ -83,11 +87,12 @@ PROJECT_DIR="$COMMON_DIR/.."
 
 load_env "$COMMON_DIR"
 source "$COMMON_DIR/download-easyrsa.sh"
-[ ! -f "$PKI_DIR/ca.crt" ] && { echo "CA not found. Run gen-certs.sh first."; exit 1; }
+if [ ! -f "$PKI_DIR/ca.crt" ]; then echo "CA not found. Run gen-certs.sh first."; exit 1; fi
 
 export EASYRSA_BATCH=1 EASYRSA_NO_PASS=1
 ensure_client_cert "$EASYRSA_DIR" "$PKI_DIR" "$CLIENT"
-copy_client_certs "$PKI_DIR" "$COMMON_DIR/clients/$CLIENT" "$CLIENT"
+CLIENT_DIR="$COMMON_DIR/clients/$CLIENT"
+copy_client_certs "$PKI_DIR" "$CLIENT_DIR" "$CLIENT"
 
 for NET in "${NETWORKS[@]}"; do
   setup_client_for_network "$NET" "$PROJECT_DIR" "$PKI_DIR" "$CLIENT" "$SERVER_ADDRESS"
@@ -97,17 +102,25 @@ ARCHIVE_DIR=$(mktemp -d)
 
 for NET in "${NETWORKS[@]}"; do
   OVPN="$PROJECT_DIR/networks/$NET/clients/$CLIENT.ovpn"
-  [ -f "$OVPN" ] && cp "$OVPN" "$ARCHIVE_DIR/${NET}.ovpn"
+  if [ -f "$OVPN" ]; then cp "$OVPN" "$ARCHIVE_DIR/${NET}.ovpn"; fi
 done
 
 mkdir -p "$ARCHIVE_DIR/certs"
 cp "$CLIENT_DIR/$CLIENT.crt" "$CLIENT_DIR/$CLIENT.key" "$CLIENT_DIR/ca.crt" "$ARCHIVE_DIR/certs/"
 
-cat > "$ARCHIVE_DIR/install-debian.sh" <<'SHEOF'
+cat > "$ARCHIVE_DIR/install-debian.sh" << SHEOF
 #!/usr/bin/env bash
 set -euo pipefail
+
 apt update && apt install -y openvpn network-manager-openvpn network-manager-openvpn-gnome
+
 SHEOF
+for NET in "${NETWORKS[@]}"; do
+  cat >> "$ARCHIVE_DIR/install-debian.sh" << SHEOF
+cp "$NET.ovpn" /etc/openvpn/client/$NET.conf
+systemctl enable --now openvpn-client@$NET
+SHEOF
+done
 chmod +x "$ARCHIVE_DIR/install-debian.sh"
 
 tar czf "$CLIENT_DIR/$CLIENT.tar.gz" -C "$ARCHIVE_DIR" .

@@ -35,5 +35,5 @@ COMMON_DIR="$(cd "$(dirname "$0")" && pwd)"
 EASYRSA_DIR="$COMMON_DIR/easy-rsa"
 
 source "$COMMON_DIR/download-easyrsa.sh"
-[ -f "$COMMON_DIR/../.env" ] && source "$COMMON_DIR/../.env"
+if [ -f "$COMMON_DIR/../.env" ]; then source "$COMMON_DIR/../.env"; fi
 bootstrap_ca "$EASYRSA_DIR"

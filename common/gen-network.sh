@@ -2,12 +2,14 @@
 set -euo pipefail
 
 cidr_to_netmask() {
-  local cidr=$1 mask=$((0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF))
+  local cidr=$1
+  local mask=$((0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF))
   printf "%d.%d.%d.%d" $(( (mask >> 24) & 0xFF )) $(( (mask >> 16) & 0xFF )) $(( (mask >> 8) & 0xFF )) $(( mask & 0xFF ))
 }
 
 network_base() {
-  local ip=$1 cidr=$2 mask=$((0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF)) ip_num=0
+  local ip=$1 cidr=$2 ip_num=0
+  local mask=$((0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF))
   local IFS=.; for octet in $ip; do ip_num=$(( (ip_num << 8) | octet )); done
   local base=$(( ip_num & mask ))
   printf "%d.%d.%d.%d" $(( (base >> 24) & 0xFF )) $(( (base >> 16) & 0xFF )) $(( (base >> 8) & 0xFF )) $(( base & 0xFF ))
@@ -41,7 +43,9 @@ ensure_server_cert() {
 ensure_dh_params() {
   local EASYRSA_DIR="$1" PKI_DIR="$2"
   cd "$EASYRSA_DIR"
-  [ ! -f "$PKI_DIR/dh.pem" ] && ./easyrsa gen-dh
+  if [ ! -f "$PKI_DIR/dh.pem" ]; then
+    ./easyrsa gen-dh
+  fi
 }
 
 generate_ta_key() {
@@ -100,6 +104,7 @@ write_verify_script() {
 #!/bin/sh
 if [ "$depth" = "0" ]; then
   NET_DIR="$(cd "$(dirname "$0")" && pwd)"
+  echo "verify.sh: $X509_0_CN from ${untrusted_ip:-unknown} connecting"
   [ -f "$NET_DIR/ccd/$X509_0_CN" ]; exit $?
 fi
 exit 0
@@ -107,7 +112,7 @@ SHEOF
   chmod +x "$NET_DIR/verify.sh"
 }
 
-[ $# -lt 4 ] && { echo "Usage: $0 <name> <mode> <port> <subnet>"; exit 1; }
+if [ $# -lt 4 ]; then echo "Usage: $0 <name> <mode> <port> <subnet>"; exit 1; fi
 
 NAME="$1" MODE="$2" PORT="$3" SUBNET="$4"
 COMMON_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -116,8 +121,8 @@ PKI_DIR="$EASYRSA_DIR/pki"
 NET_DIR="$COMMON_DIR/../networks/$NAME"
 
 source "$COMMON_DIR/download-easyrsa.sh"
-[ ! -f "$PKI_DIR/ca.crt" ] && { echo "CA not found. Run gen-certs.sh first."; exit 1; }
-[ -d "$NET_DIR" ] && { echo "Network '$NAME' already exists at $NET_DIR"; exit 1; }
+if [ ! -f "$PKI_DIR/ca.crt" ]; then echo "CA not found. Run gen-certs.sh first."; exit 1; fi
+if [ -d "$NET_DIR" ]; then echo "Network '$NAME' already exists at $NET_DIR"; exit 1; fi
 
 parse_subnet "$SUBNET"
 export EASYRSA_BATCH=1 EASYRSA_NO_PASS=1
@@ -136,5 +141,5 @@ generate_ta_key "$NET_DIR"
 make_mode_block "$MODE" "$BASE" "$NETMASK" "$GATEWAY" "$POOL_START" "$POOL_END"
 write_server_conf "$NET_DIR" "$NAME" "$MODE" "$PORT" "$MODE_BLOCK"
 
-[ -f "$PKI_DIR/crl.pem" ] && cp "$PKI_DIR/crl.pem" "$NET_DIR/" || touch "$NET_DIR/crl.pem"
+if [ -f "$PKI_DIR/crl.pem" ]; then cp "$PKI_DIR/crl.pem" "$NET_DIR/"; else touch "$NET_DIR/crl.pem"; fi
 write_verify_script "$NET_DIR"
