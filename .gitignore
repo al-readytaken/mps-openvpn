@@ -9,3 +9,6 @@ common/clients/
 
 # Networks (configs, certs, keys, membership — all regeneratable)
 networks/
+
+# Environment (local overrides)
+.env

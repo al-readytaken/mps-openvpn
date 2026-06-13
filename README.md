@@ -106,22 +106,9 @@ Client containers read `CLIENT_NAME` and `NETWORKS` environment variables. The `
 └── .gitignore
 ```
 
-## Vars Configuration
+## Configuration
 
-Edit `common/vars` to customize CA certificate subject fields:
-
-```bash
-set_var EASYRSA_REQ_COUNTRY    "US"
-set_var EASYRSA_REQ_PROVINCE   "California"
-set_var EASYRSA_REQ_CITY       "San Francisco"
-set_var EASYRSA_REQ_ORG        "MPS OpenVPN Test"
-set_var EASYRSA_REQ_EMAIL      "admin@example.com"
-set_var EASYRSA_REQ_OU         "TestLab"
-set_var EASYRSA_KEY_SIZE        2048
-set_var EASYRSA_ALGO            rsa
-set_var EASYRSA_CA_EXPIRE       3650
-set_var EASYRSA_CERT_EXPIRE     3650
-```
+Edit `.env` to customize the server address and CA certificate subject fields:
 
 ## Scripts Reference
 
@@ -131,7 +118,7 @@ Downloads Easy-RSA 3.2.2 into `common/easy-rsa/`. Idempotent — skips if alread
 
 ### `common/gen-certs.sh`
 
-Boots the shared PKI: initializes Easy-RSA, builds the CA, generates initial CRL, and copies `common/vars` into the easy-rsa dir. Destroys and recreates `common/easy-rsa/pki/` each run.
+Boots the shared PKI: initializes Easy-RSA, builds the CA, and generates the initial CRL. Reads subject fields from `.env`. Destroys and recreates `common/easy-rsa/pki/` each run.
 
 ### `common/gen-network.sh <name> <mode> <port> <subnet>`
 

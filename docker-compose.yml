@@ -17,68 +17,8 @@ services:
       vpn-net:
         ipv4_address: 172.20.0.2
 
-  client1:
-    build: ./client
-    container_name: openvpn-client1
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    environment:
-      CLIENT_NAME: client1
-      NETWORKS: example-tun,example-tap
-    volumes:
-      - ./networks:/etc/openvpn/networks:ro
-      - client1-log:/var/log
-    depends_on:
-      - server
-    networks:
-      vpn-net:
-        ipv4_address: 172.20.0.10
-
-  client2:
-    build: ./client
-    container_name: openvpn-client2
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    environment:
-      CLIENT_NAME: client2
-      NETWORKS: example-tun,example-tap
-    volumes:
-      - ./networks:/etc/openvpn/networks:ro
-      - client2-log:/var/log
-    depends_on:
-      - server
-    networks:
-      vpn-net:
-        ipv4_address: 172.20.0.11
-
-  client3:
-    build: ./client
-    container_name: openvpn-client3
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun
-    environment:
-      CLIENT_NAME: client3
-      NETWORKS: example-tun,example-tap
-    volumes:
-      - ./networks:/etc/openvpn/networks:ro
-      - client3-log:/var/log
-    depends_on:
-      - server
-    networks:
-      vpn-net:
-        ipv4_address: 172.20.0.12
-
 volumes:
   server-log:
-  client1-log:
-  client2-log:
-  client3-log:
 
 networks:
   vpn-net:
