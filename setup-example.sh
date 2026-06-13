@@ -3,10 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+if [ -f "$ROOT_DIR/.env" ]; then source "$ROOT_DIR/.env"; fi
+
 TUN_NET="${TUN_NET:-default-tun}"
 TAP_NET="${TAP_NET:-default-tap}"
-TUN_SUBNET="${TUN_SUBNET:-10.23.44.0/24}"
-TAP_SUBNET="${TAP_SUBNET:-10.23.43.0/24}"
+TUN_SUBNET="${TUN_SUBNET:-10.0.0.0/24}"
+TAP_SUBNET="${TAP_SUBNET:-10.0.1.0/24}"
 TUN_PORT="${TUN_PORT:-1194}"
 TAP_PORT="${TAP_PORT:-1195}"
 TAP_CLIENTS="${TAP_CLIENTS:-3}"
