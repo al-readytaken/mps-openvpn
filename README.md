@@ -240,6 +240,81 @@ docker compose restart server
 
 TLS handshake logs show `VERIFY SCRIPT OK` for allowed clients, and `WARNING: Failed running command (--tls-verify script): external program exited with error status: 1` for blocked ones.
 
+## Bare-Metal (without Docker)
+
+The setup scripts work on bare-metal. Only the Docker-specific orchestration (`docker-compose.yml`, `server/start.sh`, `client/start.sh`) is skipped.
+
+### Prerequisites
+
+```bash
+# Install OpenVPN (Alpine / Debian / RHEL example)
+apk add openvpn            # Alpine
+apt install openvpn         # Debian/Ubuntu
+dnf install openvpn         # Fedora/RHEL
+```
+
+All `common/*.sh` scripts run natively — no Docker required.
+
+### Quick Start
+
+```bash
+# 1. Bootstrap CA + create networks + clients
+bash common/gen-certs.sh
+bash common/gen-network.sh example-tun tun 1194 10.8.0.0/24
+bash common/gen-network.sh example-tap tap 1195 10.9.0.0/24
+bash common/gen-client.sh client1 example-tun example-tap
+```
+
+> **Note:** `gen-network.sh` uses `docker run` to generate the `ta.key` file. If Docker is not available, generate it manually after creating the network:
+> ```bash
+> openvpn --genkey secret networks/example-tun/ta.key
+> openvpn --genkey secret networks/example-tap/ta.key
+> ```
+
+### Starting the Server
+
+Start one OpenVPN instance per network (each on a separate port):
+
+```bash
+# Start each network as a background daemon
+sudo openvpn --config networks/example-tun/server.conf --daemon
+sudo openvpn --config networks/example-tap/server.conf --daemon
+```
+
+Or use a single shell loop:
+
+```bash
+for conf in networks/*/server.conf; do
+  sudo openvpn --config "$conf" --daemon
+done
+```
+
+### Starting Clients
+
+Start a client connection per network:
+
+```bash
+sudo openvpn --config networks/example-tun/clients/client1.ovpn --daemon
+sudo openvpn --config networks/example-tap/clients/client1.ovpn --daemon
+```
+
+### Additional Setup
+
+- **IP forwarding:** `sysctl -w net.ipv4.ip_forward=1` (make persistent in `/etc/sysctl.conf`)
+- **TUN device:** created automatically by OpenVPN when run as root or with `CAP_NET_ADMIN`
+- **Firewall:** ensure UDP ports (1194, 1195, etc.) are open:
+
+```bash
+iptables -A INPUT -p udp --dport 1194 -j ACCEPT
+iptables -A INPUT -p udp --dport 1195 -j ACCEPT
+```
+
+### Stopping
+
+```bash
+sudo killall openvpn
+```
+
 ## Troubleshooting
 
 **docker compose network conflicts** — The `vpn-net` subnet (`172.20.0.0/24`) must not overlap with any VPN subnet. Change it in `docker-compose.yml` if needed.
