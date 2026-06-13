@@ -72,7 +72,7 @@ push \"route-gateway $GATEWAY\""
 write_server_conf() {
   local NET_DIR="$1" NAME="$2" MODE="$3" PORT="$4" MODE_BLOCK="$5"
   cat > "$NET_DIR/server.conf" <<EOF
-dev $MODE
+dev ${MODE}-${NAME}
 proto udp
 port $PORT
 ca /etc/openvpn/networks/$NAME/ca.crt

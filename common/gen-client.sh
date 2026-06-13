@@ -28,7 +28,8 @@ write_ccd_marker() {
   local CCD_FILE="$NET_DIR/ccd/$CLIENT"
   if [ -f "$CCD_FILE" ]; then return; fi
   if [ -n "$FIXED_IP" ]; then
-    local MODE=$(grep '^dev ' "$NET_DIR/server.conf" | awk '{print $2}')
+    local DEV=$(grep '^dev ' "$NET_DIR/server.conf" | awk '{print $2}')
+    local MODE="${DEV%%-*}"
     if [ "$MODE" != "tap" ]; then
       echo "Warning: Fixed IP only for TAP; ignoring for $(basename "$NET_DIR")" >&2
       echo "# $CLIENT" > "$CCD_FILE"
