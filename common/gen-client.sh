@@ -135,7 +135,10 @@ cat > "$ARCHIVE_DIR/install-debian.sh" << SHEOF
 #!/usr/bin/env bash
 set -euo pipefail
 
-apt update && apt install -y openvpn network-manager-openvpn network-manager-openvpn-gnome
+apt update && apt install -y openvpn
+
+# Optional GUI/tray integration (uncomment if needed):
+# apt install -y network-manager-openvpn network-manager-openvpn-gnome
 
 SHEOF
 for NET in "${NET_NAMES[@]}"; do
